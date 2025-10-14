@@ -85,6 +85,7 @@ const categoryIcons: { [key: string]: React.FC<{ className?: string }> } = {
 };
 
 interface HistoryItem {
+  name: string;
   prompt: string;
   category: string;
 }
@@ -124,20 +125,24 @@ export const History: React.FC<HistoryProps> = ({ history, onSelect, onClear }) 
         </button>
 
         {isOpen && (
-          <div className="pb-3 animate-fade-in" style={{animationDuration: '0.2s'}}>
+          <div className="pb-3">
             <ul className="max-h-60 overflow-y-auto space-y-2 pr-2">
               {history.map((item, index) => {
                   const Icon = getIconForCategory(item.category);
                   return (
-                    <li key={index}>
+                    <li 
+                      key={index} 
+                      className="animate-slide-in-bottom"
+                      style={{ animationDelay: `${index * 50}ms`}}
+                    >
                       <button 
                         onClick={() => { onSelect(item.prompt); setIsOpen(false); }} 
                         className="w-full text-left p-3 rounded-lg bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 flex items-start gap-3 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-blue-900/30 dark:hover:border-blue-600 dark:focus:ring-offset-slate-900"
                       >
                         <Icon className="w-5 h-5 text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0" />
                         <div className="flex-grow overflow-hidden">
-                            <p className="truncate text-slate-700 dark:text-slate-200 font-medium text-sm">{item.prompt.split('\n')[0]}</p>
-                            <p className="truncate text-slate-500 dark:text-slate-400 text-xs mt-1">{item.prompt.substring(item.prompt.indexOf('\n') + 1)}</p>
+                            <p className="truncate text-slate-700 dark:text-slate-200 font-medium text-sm">{item.name}</p>
+                            <p className="truncate text-slate-500 dark:text-slate-400 text-xs mt-1">{item.prompt}</p>
                         </div>
                       </button>
                     </li>

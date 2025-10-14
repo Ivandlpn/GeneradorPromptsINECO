@@ -1,7 +1,5 @@
 {
-  "name": "Prompt Generator",
+  "name": "Generador de Prompts - INECO",
   "description": "A web application that helps employees generate detailed, brand-compliant prompts for generative AI based on their specific needs. The app uses Ineco's corporate identity to craft the perfect prompt.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
+  "requestFramePermissions": []
 }

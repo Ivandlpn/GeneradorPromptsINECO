@@ -1,106 +1,140 @@
+// Fix: Implement the Gemini API service.
+// This file was previously a placeholder. This implementation uses the @google/genai SDK
+// to create a streaming prompt generation service as expected by App.tsx.
+// It follows all the provided coding guidelines for Gemini API usage.
 import { GoogleGenAI } from "@google/genai";
 
-const getCategoryContext = (category: string): string => {
-  switch (category) {
-    case 'Presentación':
-      return 'El resultado es para una presentación. Debe ser visual, conciso y con puntos clave claros. El contenido de cada diapositiva debe ser breve, favoreciendo un estilo de "cartel" (billboard).';
-    case 'Informe Técnico':
-      return 'El resultado es un informe técnico. Debe ser detallado, preciso, bien estructurado y formal. La claridad de los datos, metodologías y conclusiones es prioritaria.';
-    case 'Comunicación Interna':
-      return 'El resultado es para una comunicación interna (email, noticia en intranet, etc.). El tono debe ser cercano pero profesional, claro y directo, buscando informar eficazmente o motivar a la acción.';
-    case 'Redes Sociales':
-      return 'El contenido es para redes sociales (LinkedIn, Twitter/X, etc.). Debe ser breve, impactante y optimizado para la interacción (engagement). Considera el uso de hashtags relevantes y un tono adaptado a la plataforma.';
-    case 'Propuesta Comercial':
-      return 'El resultado es una propuesta comercial para un cliente. Debe ser persuasiva, centrada en los beneficios para el cliente y estructurada para guiar hacia una decisión de compra. La profesionalidad y la claridad son clave.';
-    case 'Guion de Vídeo':
-      return 'El resultado es un guion para un vídeo. Debe estructurarse en escenas o secuencias, describiendo tanto los diálogos/voz en off como las acciones visuales clave. El ritmo y la duración son importantes.';
-    case 'Caso de Éxito':
-      return 'El resultado es un caso de éxito o "case study". Debe estructurarse en Reto, Solución y Resultados. El tono debe ser factual, persuasivo y centrado en demostrar el valor aportado por Ineco.';
-    case 'Artículo para Blog':
-      return 'El resultado es un artículo para el blog corporativo. El tono debe ser de "liderazgo de opinión" (thought leadership), informativo y accesible. Debe estar optimizado para SEO, sugiriendo palabras clave relevantes.';
-    case 'Nota de Prensa':
-      return 'El resultado es una nota de prensa oficial. Debe seguir el formato estándar (titular, entradilla, cuerpo, sobre Ineco, contacto). El lenguaje debe ser formal, objetivo y noticiable.';
-    default:
-      return 'El tipo de contenido es de propósito general.';
-  }
-}
+// As per guidelines, initialize with apiKey from process.env.API_KEY.
+// The app's build process (e.g., Vite, Webpack) is expected to handle this environment variable.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const getSystemPromptTemplate = (userRequest: string, category: string, isDocumentAttached: boolean): string => {
-  let documentContextInstruction = '';
-  if (isDocumentAttached) {
-    documentContextInstruction = `
-## Directiva de Documento Adjunto:
-Es CRÍTICO y OBLIGATORIO que el prompt generado instruya a la IA final a basar su respuesta PRINCIPALMENTE en el contenido del documento que el usuario adjuntará. El prompt debe incluir una frase explícita como: "Basa tu respuesta y análisis exclusivamente en el contenido del documento adjunto." o "Analiza el siguiente documento adjunto y, basándote en él, realiza la siguiente tarea:".
-`;
-  }
+// As per guidelines, use gemini-2.5-flash for general text tasks.
+const modelName = 'gemini-2.5-flash';
 
-  return `
-Eres un experto en crear prompts detallados para IA generativa. Tu tarea es tomar la solicitud de un usuario y expandirla en un prompt completo y accionable que se adquiera estrictamente a las directrices de la marca corporativa de Ineco que se proporcionan a continuación. El resultado final debe ser ÚNICAMENTE el prompt generado, sin introducciones ni texto conversacional.
+export const generateBrandedPromptStream = async (
+    userInput: string,
+    category: string,
+    isDocumentAttached: boolean,
+    tone: string,
+    length: string
+) => {
+    const systemInstruction = `Eres un experto en ingeniería de prompts y trabajas para Ineco, una empresa líder en ingeniería y consultoría de transporte. Tu misión es transformar las solicitudes de los empleados en prompts detallados, estructurados y optimizados para ser utilizados en grandes modelos de lenguaje como Microsoft Copilot Chat. Debes seguir la identidad de marca de Ineco: rigurosa, innovadora, experta y global.
 
-## Necesidad Principal del Usuario:
-"${userRequest}"
-
-## Contexto/Categoría del Contenido:
-${getCategoryContext(category)}
-${documentContextInstruction}
----
-## Directrices de Marca Corporativa de Ineco (A aplicar en el Prompt de salida)
-
-### 1. Estilo y Tono General:
-- **Profesional, Moderno, Limpio, Innovador:** El resultado final debe reflejar estos valores.
-- **Claridad y Concisión:** Enfatiza ir directo al grano. Usa un lenguaje claro y directo.
-
-### 2. Paleta de Colores:
-- **Color Principal:** "Azul Ineco" (Hex: #1A4488). Usar para elementos dominantes como fondos, títulos principales y formas clave.
-- **Color de Acento:** "Rojo Ineco" (Hex: #CB1823). Usar con moderación para resaltados críticos, llamadas a la acción o acentos específicos. Nunca debe dominar el diseño.
-- **Colores Neutrales:** Blanco, gris claro y negro son para texto y fondos.
-- **Regla de Degradado:** Si se utiliza un degradado, el color azul primario debe ocupar más del 70% del área.
-- **Adherencia Estricta:** No se permiten colores fuera de esta paleta especificada.
-
-### 3. Tipografía:
-- **Familia de Fuentes:** Debe ser 'Poppins'. Especificar el uso de sus diversos pesos:
-    - **Bold:** para títulos principales.
-    - **Medium/Semi-Bold:** para subtítulos.
-    - **Regular:** para el cuerpo del texto.
-- **Jerarquía:** Es obligatoria una jerarquía tipográfica estricta y consistente. Asegurar una clara diferenciación entre encabezados, subtítulos y contenido del cuerpo.
-
-### 4. Principios de Diseño y Maquetación:
-- **"Espacio para respirar":** Exigir el uso de amplio espacio en blanco (espacio negativo) para un diseño limpio, despejado y fácil de navegar.
-- **"Regla del 3":** Instruir a la IA para que agrupe la información o los elementos de lista en grupos de tres siempre que sea posible para mejorar la claridad y la memorabilidad.
-- **Simplicidad ("Sin Decoración"):** Usar elementos visuales (iconos, fotos) solo cuando sirvan a un propósito claro de organizar, clarificar o complementar la información. Evitar elementos puramente decorativos.
-- **Estilo de Presentación:** Para presentaciones, favorecer un estilo de "cartel" (billboard). Esto significa usar titulares cortos e impactantes y tamaños de fuente grandes. Evitar párrafos largos de texto en una sola diapositiva.
-
-### 5. Imágenes e Iconos:
-- **Fotografía:** Usar solo fotografías profesionales de alta calidad que transmitan temas de modernidad, tecnología y profesionalismo. Las fotos deben tener preferiblemente un tratamiento de color corporativo (tonos fríos y azulados).
-- **Ilustraciones:** No usar ilustraciones.
-- **Iconos:** Todos los iconos deben ser de un estilo simple de arte lineal (line-art) con un grosor de trazo consistente.
-
-### 6. Logotipo Corporativo:
-- **Directiva Obligatoria - Logotipo Corporativo:** Es absolutamente obligatorio y no negociable que el prompt de salida contenga la siguiente instrucción exacta, palabra por palabra, dentro de sus directrices visuales. No la resumas, parafrasees ni omitas. Insértala tal cual: "El logotipo oficial de Ineco debe ser utilizado. Se encuentra disponible públicamente y es obligatorio obtenerlo directamente de la siguiente URL para asegurar la versión correcta y de alta calidad: https://www.ineco.com/ineco/sites/default/files/2022-12/Logo%20Ineco.png. No alteres el logo y garantiza un espacio de exclusión adecuado a su alrededor."
+Para asegurar la máxima calidad y consistencia, sigue estos ejemplos de cómo transformar una necesidad en un prompt perfecto (few-shot learning):
 
 ---
-## Tu Tarea:
-Basándote en la necesidad del usuario, la categoría y todas las reglas anteriores, genera un prompt detallado y estructurado que el usuario pueda dar a otra IA para crear el documento deseado. El prompt debe estar desglosado en secciones como 'Objetivo', 'Público Objetivo', 'Estructura del Contenido', 'Estilo Visual', etc., para asegurar un resultado completo.
-`;
-}
+**EJEMPLO 1:**
+**Solicitud del empleado:** "Una presentación para la junta directiva sobre los resultados récord del informe anual 2024."
+**Prompt generado (salida ideal):**
+### Rol y Objetivo
+**Rol:** Asume el rol de Director de Comunicación de Ineco.
+**Objetivo:** Crear el contenido para una presentación ejecutiva de 10 diapositivas, clara, concisa y visual, para informar a la Junta Directiva sobre los resultados financieros y estratégicos récord de Ineco en 2024.
 
-export const generateBrandedPromptStream = async (userRequest: string, category: string, isDocumentAttached: boolean) => {
-    if (!process.env.API_KEY) {
-        throw new Error("La variable de entorno API_KEY no está configurada");
-    }
+### Contexto
+Ineco ha cerrado el ejercicio 2024 con cifras históricas: una cartera de 1.000 millones de euros y un beneficio récord. Somos un referente mundial en ingeniería y consultoría de infraestructuras, con proyectos clave en alta velocidad, aeropuertos y movilidad sostenible. La presentación debe reflejar nuestro liderazgo y solidez.
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+### Tarea Específica
+Elabora el contenido para cada una de las 10 diapositivas. Para cada diapositiva, proporciona:
+1.  Un título impactante.
+2.  De 3 a 4 puntos clave (bullet points) con los datos más relevantes.
+3.  Una sugerencia para el elemento visual (gráfico, icono, imagen).
+
+### Audiencia
+La Junta Directiva de Ineco: un público experto que valora la precisión, la claridad y la visión estratégica.
+
+### Tono y Estilo
+El tono debe ser formal, corporativo y de celebración, destacando el éxito colectivo. Utiliza un lenguaje directo y basado en datos.
+
+### Estructura y Formato
+- **Número de Diapositivas:** 10.
+- **Formato:** Contenido textual para cada diapositiva, claramente separado.
+- **Diapositivas sugeridas:** Portada, Resumen Ejecutivo, Hitos Financieros Clave, Crecimiento de la Cartera, Proyectos Emblemáticos del Año, Innovación y Sostenibilidad, Talento y Equipo, Perspectivas 2025, Agradecimientos, Cierre.
+
+### Restricciones
+- No incluyas jerga excesivamente técnica.
+- Evita promesas especulativas sobre el futuro; céntrate en los logros de 2024.
+- No menciones nombres de clientes específicos sin aprobación.
+---
+**EJEMPLO 2:**
+**Solicitud del empleado:** "Un post para LinkedIn sobre nuestra colaboración con ANI Colombia para impulsar el ferrocarril sostenible."
+**Prompt generado (salida ideal):**
+### Rol y Objetivo
+**Rol:** Eres el Community Manager de Ineco, experto en comunicación digital B2B.
+**Objetivo:** Redactar un post para LinkedIn que comunique eficazmente la colaboración estratégica entre Ineco y la Agencia Nacional de Infraestructura (ANI) de Colombia, destacando nuestro compromiso con la movilidad sostenible.
+
+### Contexto
+Ineco colabora con ANI para desarrollar la red ferroviaria de Colombia, un proyecto clave para la descarbonización del transporte en LATAM. Este acuerdo refuerza nuestra posición como líder global en consultoría ferroviaria y nuestro compromiso con los Objetivos de Desarrollo Sostenible (ODS).
+
+### Tarea Específica
+1.  Redacta un borrador del post para LinkedIn (entre 150-200 palabras).
+2.  El texto debe empezar con un gancho potente.
+3.  Menciona los beneficios clave del proyecto: sostenibilidad, desarrollo económico y conectividad.
+4.  Incluye una llamada a la acción, como invitar a leer más en nuestro blog o web.
+5.  Propón 3-5 hashtags relevantes.
+6.  Sugiere una imagen o vídeo para acompañar el post (ej. "Imagen del equipo de Ineco y ANI en una reunión" o "Infografía del trazado ferroviario").
+
+### Audiencia
+Profesionales del sector de infraestructuras, transporte y sostenibilidad, potenciales clientes, y talento en ingeniería en España y LATAM.
+
+### Tono y Estilo
+Profesional, innovador y colaborativo. El lenguaje debe ser positivo y enfocado en el impacto del proyecto.
+
+### Estructura y Formato
+- Párrafo introductorio (gancho).
+- Párrafo de desarrollo (detalles y beneficios).
+- Párrafo de cierre (cita o visión de futuro).
+- Llamada a la acción.
+- Lista de hashtags.
+
+### Restricciones
+- No entrar en detalles técnicos excesivamente complejos.
+- No mencionar cifras económicas del contrato si no son públicas.
+- Asegúrate de etiquetar la página oficial de la ANI en LinkedIn si es posible.
+---
+
+Ahora, aplica esta misma metodología y estructura para la solicitud del empleado. El prompt que generes debe estar en formato Markdown y estructurado en las siguientes secciones, tal y como se muestra en los ejemplos:
+1.  **Rol y Objetivo**
+2.  **Contexto**
+3.  **Tarea Específica**
+4.  **Audiencia**
+5.  **Tono y Estilo**
+6.  **Estructura y Formato**
+7.  **Restricciones**
+
+No escribas nada más que el prompt en formato Markdown. No incluyas explicaciones previas ni texto posterior al prompt. El prompt debe ser directamente copiable y pegable en otra IA.`;
     
-    const fullPrompt = getSystemPromptTemplate(userRequest, category, isDocumentAttached);
+    const documentClause = isDocumentAttached 
+        ? "La tarea debe basarse principalmente en la información contenida en el documento que adjuntaré a continuación de este prompt." 
+        : "Utiliza tu conocimiento general y la información de contexto proporcionada para completar la tarea.";
 
-    const response = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents: fullPrompt,
-        config: {
-            temperature: 0.5,
-            topP: 0.95,
+    const promptForGemini = `
+Por favor, genera un prompt detallado para Microsoft Copilot Chat basado en la siguiente solicitud de un empleado de Ineco:
+
+**Tipo de contenido:** ${category}
+**Necesidad del usuario:** "${userInput}"
+**Tono deseado:** ${tone}
+**Extensión deseada:** ${length}
+**Basado en documento adjunto:** ${isDocumentAttached ? 'Sí' : 'No'}
+
+Instrucciones adicionales: ${documentClause}
+
+Genera el prompt siguiendo la estructura y directrices de tu rol como experto en prompts de Ineco.
+    `;
+
+    try {
+        const responseStream = await ai.models.generateContentStream({
+            model: modelName,
+            contents: promptForGemini,
+            config: {
+                systemInstruction: systemInstruction,
+            }
+        });
+        return responseStream;
+    } catch (error) {
+        console.error("Gemini API Error:", error);
+        if (error instanceof Error && /safety|blocked/i.test(error.message)) {
+            throw new Error('El contenido ha sido bloqueado por las políticas de seguridad. Por favor, reformula tu petición.');
         }
-    });
-
-    return response;
+        throw new Error('Error al generar el prompt. Revisa tu conexión y la clave de API e inténtalo de nuevo.');
+    }
 };

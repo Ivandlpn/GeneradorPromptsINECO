@@ -69,6 +69,9 @@ const categories = [
   { name: 'Nota de Prensa', icon: MicrophoneIcon, placeholder: "Ej: 'Una nota de prensa anunciando la adjudicación de un nuevo contrato de consultoría en LATAM.'" },
 ];
 
+const tones = ['Formal', 'Creativo', 'Técnico', 'Urgente'];
+const lengths = ['Breve', 'Normal', 'Detallado'];
+
 interface PromptInputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -78,9 +81,45 @@ interface PromptInputProps {
   onCategoryChange: (category: string) => void;
   isDocumentAttached: boolean;
   onDocumentAttachedChange: (isChecked: boolean) => void;
+  tone: string;
+  onToneChange: (tone: string) => void;
+  length: string;
+  onLengthChange: (length: string) => void;
 }
 
-export const PromptInput: React.FC<PromptInputProps> = ({ value, onChange, onSubmit, isLoading, selectedCategory, onCategoryChange, isDocumentAttached, onDocumentAttachedChange }) => {
+const ButtonGroup: React.FC<{
+  label: string;
+  options: string[];
+  selectedValue: string;
+  onSelect: (value: string) => void;
+}> = ({ label, options, selectedValue, onSelect }) => (
+  <div>
+    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+    <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-lg">
+      {options.map(option => (
+        <button
+          key={option}
+          onClick={() => onSelect(option)}
+          className={`w-full text-center px-3 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1A4488] dark:focus:ring-offset-slate-800 dark:focus:ring-blue-400 ${
+            selectedValue === option
+              ? 'bg-white dark:bg-slate-700 text-[#1A4488] dark:text-white shadow'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-700/60'
+          }`}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+export const PromptInput: React.FC<PromptInputProps> = ({ 
+    value, onChange, onSubmit, isLoading, 
+    selectedCategory, onCategoryChange, 
+    isDocumentAttached, onDocumentAttachedChange,
+    tone, onToneChange,
+    length, onLengthChange
+}) => {
   const currentPlaceholder = categories.find(c => c.name === selectedCategory)?.placeholder || '';
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -198,7 +237,15 @@ export const PromptInput: React.FC<PromptInputProps> = ({ value, onChange, onSub
                 Marca esta opción si vas a adjuntar un documento (informe, norma, etc.) al usar este prompt en otra IA.
             </p>
         </div>
-        <div className="mt-4 flex justify-end">
+
+        <div className="mt-6 border-t border-slate-200 dark:border-slate-700/50 pt-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ButtonGroup label="Tono" options={tones} selectedValue={tone} onSelect={onToneChange} />
+                <ButtonGroup label="Extensión" options={lengths} selectedValue={length} onSelect={onLengthChange} />
+            </div>
+        </div>
+
+        <div className="mt-6 flex justify-end">
           <button
             onClick={onSubmit}
             disabled={isLoading || !value.trim()}
